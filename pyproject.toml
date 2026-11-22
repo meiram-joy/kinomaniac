@@ -1,0 +1,19 @@
+[project]
+name = "kinomaniac"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "openai==3.41.0",
+    "pydantic>=2.14.4",
+    "python-dotenv>=1.2.4",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+]
+
+[tool.pytest.ini_options]
+# tests/ видят kino.py и пакет kinomaniac/ из корня проекта
+pythonpath = ["."]
+testpaths = ["tests"]

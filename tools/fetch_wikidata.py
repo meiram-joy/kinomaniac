@@ -24,22 +24,9 @@ def sparql(query: str) -> list[dict]:
                 return [{ "qid": i["film"]["value"].rsplit("/",1), "title": i["title"]["value"], "year" : int(i.["year"]["value"]), "minutes": int(i.["minutes"]["value"])} for i in items]
 
 
-def search(title: str) -> list[dict]: 
-        params = {"action": "wbsearchentities", "search": title, "language": "ru", "uselang": "ru", "type":"item", "format": "json", "limit": 5 }
-        r = httpx.get(API,params=params,headers=HEADERS, timeout=20)
-        r.raise_for_status()
-        data = r.json()
-        docs = data["search"]
-        return [{ d.get("id"), d.get("label"), d.get("description")} for d in docs]
-
 def main() -> None:
         mode = sys.argv[1]
-        if mode == "search":
-          title = sys.argv[2]
-          films = search(title)
-          for film in films:
-            print(film)
-        elif mode == "kz":
+        if mode == "kz":
           films = sparql(KZ_FILMS)
           for film in films:
             print(f" {film['qid']} | {film['title']} | {film['year']} | {film['minutes']}")

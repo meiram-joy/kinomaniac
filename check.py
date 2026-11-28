@@ -55,6 +55,9 @@ def main() -> None:
 
     films = load_catalog(CATALOG)
     titles = {str(f["id"]): f["title"] for f in films}
+    if not QUERIES.exists():
+        print("Нет файла queries.json в корне проекта: создайте его, формат в README.")
+        return
     items = json.loads(QUERIES.read_text(encoding="utf-8"))
     client = OpenAI(base_url=args.base_url, api_key=args.api_key,
                     max_retries=0, timeout=300)

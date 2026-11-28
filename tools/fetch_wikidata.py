@@ -2,18 +2,6 @@
 
     uv run tools/fetch_wikidata.py build      # черновик tools/films_draft.json
     uv run tools/fetch_wikidata.py finalize   # черновик + tools/descriptions.json -> films.json
-
-Что делает build:
-1. Для каждой категории из CATEGORIES отправляет SPARQL-запрос к Wikidata и берёт
-   самые известные фильмы (по числу языковых версий статьи, sitelinks).
-2. Убирает повторы (один фильм бывает в нескольких категориях) и короткометражки.
-3. Переводит жанры, страны и языки Wikidata в слова словаря каталога.
-4. Для каждого фильма берёт вводный абзац статьи русской Википедии: по нему
-   пишется описание своими словами.
-5. Пишет tools/films_draft.json: черновик со всеми полями и исходными данными
-   для проверки глазами (qid, жанры Wikidata как есть, абзац Википедии).
-
-Год и длительность берутся только из Wikidata, не из памяти модели.
 """
 
 import json
@@ -28,15 +16,14 @@ HEADERS = {"User-Agent": "kinomaniac-study/0.1"}
 SPARQL_URL = "https://query.wikidata.org/sparql"
 SUMMARY_URL = "https://ru.wikipedia.org/api/rest_v1/page/summary/"
 DRAFT = Path(__file__).parent / "films_draft.json"
-DESCRIPTIONS = Path(__file__).parent / "descriptions.json"   # описания по qid
+DESCRIPTIONS = Path(__file__).parent / "descriptions.json"
 CATALOG = Path(__file__).parent.parent / "films.json"
 FIELDS = ["id", "title", "year", "minutes", "genres", "countries", "languages"]
 
-PAUSE = 2          # секунд между запросами: за частые запросы Wikidata отвечает 429
-MIN_MINUTES = 60   # короче этого считаем короткометражкой и пропускаем
+PAUSE = 2
+MIN_MINUTES = 60
 
-# Шаблон запроса. Вместо FILTER_HERE, MIN_HERE и LIMIT_HERE подставляются значения
-# категории. f-строка не подходит: в SPARQL много фигурных скобок.
+
 TEMPLATE = """
 SELECT ?film ?title ?article (MIN(YEAR(?date)) AS ?year) (MAX(?dur) AS ?minutes) ?sitelinks
        (GROUP_CONCAT(DISTINCT ?genreLabel; separator="|") AS ?genres)
@@ -56,10 +43,7 @@ WHERE {
 GROUP BY ?film ?title ?article ?sitelinks ORDER BY DESC(?sitelinks) LIMIT LIMIT_HERE
 """
 
-# (название, фильтр SPARQL, минимум sitelinks, сколько фильмов взять)
-# P31 Q11424 — «это фильм», P495 — страна, P136 — жанр.
-# Мультфильмы в Wikidata отдельный тип (P31 Q202866), а не фильм с жанром.
-# Порог sitelinks нужен, чтобы сервер успел: без него запрос по комедиям падает с 504.
+
 CATEGORIES = [
     ("казахстанские", "?film wdt:P31 wd:Q11424; wdt:P495 wd:Q232.", 3, 12),
     ("советские", "?film wdt:P31 wd:Q11424; wdt:P495 wd:Q15180.", 40, 7),
@@ -71,7 +55,7 @@ CATEGORIES = [
     ("документальный", "?film wdt:P31 wd:Q11424; wdt:P136 wd:Q93204.", 30, 5),
 ]
 
-# Словарь каталога: жанр Wikidata -> слово каталога. Чего нет в таблице, отбрасываем.
+
 GENRES = {
     "драматический фильм": "драма",
     "историческая драма": "драма",
@@ -106,28 +90,26 @@ GENRES = {
     "музыкальный фильм": "мюзикл",
     "вестерн": "вестерн",
 }
-MAX_GENRES = 4   # у «Терминатора» в Wikidata 16 жанров; оставляем первые по важности
+MAX_GENRES = 4
 
-# Порядок важности жанров: при обрезке до MAX_GENRES остаются более характерные.
+
 GENRE_ORDER = ["мультфильм", "документальный", "фантастика", "ужасы", "комедия",
                "мелодрама", "семейный", "вестерн", "военный", "фэнтези", "боевик",
                "триллер", "криминал", "приключения", "биография", "исторический",
                "мюзикл", "драма"]
 
 
-# Ручные поправки после просмотра черновика. Держим их в коде, а не правим JSON руками:
-# так перезапуск скрипта даёт тот же каталог.
 EXCLUDE = {
     "Q156497": "«Триумф воли» — нацистская пропаганда, не для советов на вечер",
     "Q11252497": "«Плохой кот Шерафеттин» — мультфильм для взрослых, а Wikidata "
                  "пометила его детским: попал бы в запросы «с детьми»",
 }
-GENRE_OVERRIDES = {   # жанры Wikidata у этих фильмов явно ошибочны
-    "Q206388": ["криминал", "драма"],          # Однажды в Америке: не документальный и не вестерн
-    "Q182692": ["военный", "драма"],           # Апокалипсис сегодня: не фильм ужасов
-    "Q103569": ["фантастика", "ужасы"],        # Чужой: не фэнтези и не боевик
-    "Q162255": ["фантастика", "боевик"],       # Терминатор: не фэнтези
-    "Q736731": ["мультфильм", "комедия", "семейный", "мюзикл"],  # Три кабальеро: найден как семейный
+GENRE_OVERRIDES = {
+    "Q206388": ["криминал", "драма"],
+    "Q182692": ["военный", "драма"],
+    "Q103569": ["фантастика", "ужасы"],
+    "Q162255": ["фантастика", "боевик"],
+    "Q736731": ["мультфильм", "комедия", "семейный", "мюзикл"],
 }
 
 
@@ -157,7 +139,7 @@ def sparql(query: str) -> list[dict]:
             "minutes": round(float(row["minutes"]["value"])),
             "sitelinks": int(row["sitelinks"]["value"]),
             "article": row["article"]["value"],
-            # три поля ниже OPTIONAL: в строке ответа их может не быть
+
             "wikidata_genres": split(row.get("genres", {}).get("value", "")),
             "countries": split(row.get("countries", {}).get("value", "")),
             "wikidata_languages": split(row.get("languages", {}).get("value", "")),
@@ -188,14 +170,14 @@ def wiki_extract(article_url: str) -> str:
         if response.status_code == 200:
             return response.json().get("extract", "")
         if response.status_code not in (429, 500, 502, 503, 504):
-            break                       # 404 и подобное: повтор не поможет
-        time.sleep(5 * attempt)         # 429: Википедия просит подождать
+            break
+        time.sleep(5 * attempt)
     print(f"  нет абзаца Википедии для {title}: {response.status_code}")
     return ""
 
 
 def build() -> None:
-    films: dict[str, dict] = {}     # по qid: повторы из разных категорий отсеются сами
+    films: dict[str, dict] = {}
     for name, filter_, min_links, limit in CATEGORIES:
         rows = sparql(build_query(filter_, min_links, limit))
         added = 0
@@ -221,7 +203,7 @@ def build() -> None:
             "countries": row["countries"],
             "languages": catalog_languages(row["wikidata_languages"]),
             "description": "",
-            # ниже поля для проверки и описания; в films.json они не попадут
+
             "qid": row["qid"],
             "category": row["category"],
             "wikidata_genres": row["wikidata_genres"],

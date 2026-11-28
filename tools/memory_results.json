@@ -1,0 +1,137 @@
+{
+  "model": "qwen3.5:4b",
+  "films": [
+    {
+      "title": "Матрица",
+      "catalog": [
+        1999,
+        136
+      ],
+      "model": [
+        1999,
+        136
+      ],
+      "year_ok": true,
+      "minutes_ok": true
+    },
+    {
+      "title": "Возвращение в «А»",
+      "catalog": [
+        2011,
+        116
+      ],
+      "model": [
+        2017,
+        70
+      ],
+      "year_ok": false,
+      "minutes_ok": false
+    },
+    {
+      "title": "Форрест Гамп",
+      "catalog": [
+        1994,
+        142
+      ],
+      "model": [
+        1994,
+        142
+      ],
+      "year_ok": true,
+      "minutes_ok": true
+    },
+    {
+      "title": "Король Лев",
+      "catalog": [
+        1994,
+        88
+      ],
+      "model": [
+        1994,
+        88
+      ],
+      "year_ok": true,
+      "minutes_ok": true
+    },
+    {
+      "title": "Томирис",
+      "catalog": [
+        2019,
+        155
+      ],
+      "model": [
+        1962,
+        358
+      ],
+      "year_ok": false,
+      "minutes_ok": false
+    },
+    {
+      "title": "Кочевник",
+      "catalog": [
+        2005,
+        122
+      ],
+      "model": [
+        2019,
+        184
+      ],
+      "year_ok": false,
+      "minutes_ok": false
+    },
+    {
+      "title": "Гарри Поттер и Орден Феникса",
+      "catalog": [
+        2007,
+        133
+      ],
+      "model": [
+        2005,
+        141
+      ],
+      "year_ok": false,
+      "minutes_ok": false
+    },
+    {
+      "title": "В ожидании моря",
+      "catalog": [
+        2012,
+        103
+      ],
+      "model": [
+        1981,
+        90
+      ],
+      "year_ok": false,
+      "minutes_ok": false
+    },
+    {
+      "title": "Парк юрского периода",
+      "catalog": [
+        1993,
+        127
+      ],
+      "model": [
+        1993,
+        127
+      ],
+      "year_ok": true,
+      "minutes_ok": true
+    },
+    {
+      "title": "Барби",
+      "catalog": [
+        2023,
+        114
+      ],
+      "model": [
+        2023,
+        114
+      ],
+      "year_ok": true,
+      "minutes_ok": true
+    }
+  ],
+  "wrong_year": 5,
+  "wrong_minutes": 5
+}

@@ -1,0 +1,2 @@
+{"time": "2026-11-28 16:38:46", "model": "qwen3.5:4b", "queries": 30, "runs": 3, "pass_rate": 0.811, "pass_rate_by_run": [0.733, 0.833, 0.867], "aliens": 0, "violations": 0, "outcomes": {"ok": 56, "no_match": 29, "invalid": 5}, "seconds_per_query": 1.7, "usd": 0.0}
+{"time": "2026-11-28 16:47:33", "model": "qwen2.5:14b", "queries": 30, "runs": 3, "pass_rate": 0.789, "pass_rate_by_run": [0.8, 0.8, 0.767], "aliens": 0, "violations": 0, "outcomes": {"ok": 56, "no_match": 34}, "seconds_per_query": 5.8, "usd": 0.0}

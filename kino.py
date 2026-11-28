@@ -7,7 +7,7 @@ import os
 import sys
 import time
 
-from kinomaniac import journal, llm, render
+from kinomaniac import filters, journal, llm, render
 from kinomaniac.prompt import build_messages
 from kinomaniac.schema import Choice
 from kinomaniac.verify import verify
@@ -17,12 +17,33 @@ OLLAMA = "http://127.0.0.1:11434/v1"
 CATALOG = "films.json"
 
 
+def read_filters(client, model, query, films):
+    """Первый вызов: условия запроса. При сбое — без условий, весь каталог."""
+    started = time.time()
+    schema = filters.filters_schema(films)
+    reply = llm.ask(client, model, filters.build_messages(query, films), schema)
+    flt = reply.parsed if reply.outcome is None else schema()
+    journal.write(model, f"<запрос>{query}</запрос>", reply.outcome or "ok", started,
+                  step="filters", completion=reply.completion,
+                  note=reply.note or filters.describe(flt))
+    return flt
+
+
 def pick(client, model, query, films):
     """Подобрать до трёх фильмов из films под запрос query."""
-    started = time.time()
-    request = journal.request_text(query, films)
-    reply = llm.ask(client, model, build_messages(query, films), Choice)
+    flt = read_filters(client, model, query, films)
+    candidates = filters.apply(films, flt)
+    if filters.active(flt):
+        print(f"Условия запроса: {filters.describe(flt)}, подходит фильмов: {len(candidates)}")
 
+    started = time.time()
+    request = journal.request_text(query, candidates)
+    if not candidates:
+        render.failure("no_match", "под условия запроса в каталоге ничего нет")
+        journal.write(model, request, "no_match", started, note="после фильтров пусто")
+        return "no_match", []
+
+    reply = llm.ask(client, model, build_messages(query, candidates), Choice)
     if reply.outcome is not None:
         render.failure(reply.outcome, reply.note)
         journal.write(model, request, reply.outcome, started,
@@ -30,13 +51,20 @@ def pick(client, model, query, films):
         return reply.outcome, []
 
     verdict = verify(reply.parsed, films)
+    broken = {str(film["id"]): filters.violations(film, flt) for film, _ in verdict.shown}
+    broken = {k: v for k, v in broken.items() if v}
+    if broken:
+        verdict.shown = [(f, why) for f, why in verdict.shown if str(f["id"]) not in broken]
+        if not verdict.shown:
+            verdict.outcome, verdict.note = "no_match", "все предложенные фильмы нарушают условия"
+
     if verdict.outcome == "ok":
         render.films(verdict.shown)
     else:
         render.failure(verdict.outcome, verdict.note)
     journal.write(model, request, verdict.outcome, started,
                   completion=reply.completion, rejected=verdict.rejected,
-                  note=verdict.note)
+                  violations=broken, note=verdict.note)
     return verdict.outcome, [film["id"] for film, _ in verdict.shown]
 
 

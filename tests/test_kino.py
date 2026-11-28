@@ -111,17 +111,17 @@ def test_query_cannot_close_tag(films):
 def test_one_journal_row_per_call(films, journal_in_tmp):
     run(lambda: completion(answer("f-001")), films)
     rows = journal_rows(journal_in_tmp)
-    assert len(rows) == 1
-    row = rows[0]
-    assert row["model"] == MODEL and row["outcome"] == "ok" and row["step"] == "choice"
-    assert QUERY in row["request"]
+    assert [r["step"] for r in rows] == ["filters", "choice"]
+    row = rows[1]
+    assert row["model"] == MODEL and row["outcome"] == "ok"
+    assert QUERY in row["request"] and QUERY in rows[0]["request"]
     assert "Моряк возвращается" not in row["request"]
     assert row["usage"]["prompt_tokens"] == 100
 
 
 def test_journal_written_on_failure(films, journal_in_tmp):
     run(raise_connection, films)
-    assert journal_rows(journal_in_tmp)[0]["outcome"] == "no_connection"
+    assert journal_rows(journal_in_tmp)[-1]["outcome"] == "no_connection"
 
 
 def test_uses_given_catalog_not_file(films):

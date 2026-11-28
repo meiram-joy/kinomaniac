@@ -45,19 +45,25 @@ def completion(payload, *, raw=None, refusal=None, finish="stop"):
 class Stub:
     """Выглядит как OpenAI(): client.chat.completions.parse(...). Отвечает по сценарию."""
 
-    def __init__(self, scenario):
+    def __init__(self, scenario, filters=None):
         self.scenario = scenario
+        self.filters = filters or {}
         self.calls = []
         self.chat = self
         self.completions = self
 
     def parse(self, *, response_format, **kwargs):
-        self.calls.append(kwargs)
+        kind = "picks" if "picks" in response_format.model_fields else "filters"
+        self.calls.append(dict(kwargs, kind=kind))
+        reply = self.scenario() if kind == "picks" else completion(self.filters)
         return parse_chat_completion(response_format=response_format,
-                                     chat_completion=self.scenario(), input_tools=openai.omit)
+                                     chat_completion=reply, input_tools=openai.omit)
+
+    def choice_calls(self):
+        return [c for c in self.calls if c["kind"] == "picks"]
 
     def prompt(self):
-        return "\n".join(m["content"] for m in self.calls[-1]["messages"])
+        return "\n".join(m["content"] for m in self.choice_calls()[-1]["messages"])
 
 
 def answer(*ids, status="ok"):

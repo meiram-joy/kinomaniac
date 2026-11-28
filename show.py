@@ -40,14 +40,13 @@ def summary(rows):
     print(f"Из них подбор фильма (step choice): {len(choices)}, "
           f"остальное — {dict(Counter(r.get('step') for r in rows if r not in choices))}")
     for model, count in Counter(r["model"] for r in choices).most_common():
-        mine = [r for r in choices if r["model"] == model and r.get("usage")]
-        if not mine:
-            continue
-        avg_in = sum(tokens(r, "prompt_tokens") for r in mine) / len(mine)
-        avg_out = sum(tokens(r, "completion_tokens") for r in mine) / len(mine)
-        avg_sec = sum(r.get("seconds", 0) for r in mine) / len(mine)
+        mine = [r for r in rows if r["model"] == model
+                and r.get("step", "choice") in ("filters", "choice")]
+        avg_in = sum(tokens(r, "prompt_tokens") for r in mine) / count
+        avg_out = sum(tokens(r, "completion_tokens") for r in mine) / count
+        avg_sec = sum(r.get("seconds", 0) for r in mine) / count
         usd = sum(r.get("usd", 0) for r in mine)
-        print(f"\n{model}: {count} запросов, в среднем вход {avg_in:.0f} ток., "
+        print(f"\n{model}: {count} запросов, на запрос (все шаги) вход {avg_in:.0f} ток., "
               f"выход {avg_out:.0f} ток., {avg_sec:.1f} с, всего ${usd:.4f}")
         price_in, price_out = PRICE.get(model, PRICE[REFERENCE])
         one = (avg_in * price_in + avg_out * price_out) / 1_000_000

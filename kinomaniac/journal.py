@@ -17,7 +17,8 @@ def request_text(query: str, films: list[dict]) -> str:
 
 
 def write(model: str, request: str, outcome: str, started: float, *,
-          step: str = "choice", completion=None, rejected=None, note: str = "") -> dict:
+          step: str = "choice", completion=None, rejected=None, violations=None,
+          note: str = "") -> dict:
     row = {
         "time": time.strftime("%Y-%m-%d %H:%M:%S"),
         "model": model,
@@ -28,6 +29,8 @@ def write(model: str, request: str, outcome: str, started: float, *,
     }
     if rejected:
         row["rejected"] = [str(x) for x in rejected]
+    if violations:
+        row["violations"] = violations
     if note:
         row["note"] = note
     usage = getattr(completion, "usage", None)

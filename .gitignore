@@ -3,6 +3,7 @@
 __pycache__/
 .pytest_cache/
 .env
+.claude/
 
 # раздатка курса: не наш код
 check/

@@ -14,9 +14,8 @@ import time
 from collections import Counter
 from pathlib import Path
 
-from kino import CATALOG, MODEL, OLLAMA, pick
+from kino import MODEL, load_catalog, make_client, pick
 from kinomaniac import journal
-from kinomaniac.catalog import load_catalog
 
 QUERIES = Path("queries.json")
 CHECKS = Path("checks.jsonl")
@@ -35,33 +34,28 @@ def passed(expect: dict, outcome: str, ids: list) -> bool:
 
 
 def journal_length() -> int:
-    path = Path(journal.JOURNAL)
-    return len(path.read_text(encoding="utf-8").splitlines()) if path.exists() else 0
+    return len(journal.read())
 
 
 def new_rows(before: int) -> list[dict]:
-    lines = Path(journal.JOURNAL).read_text(encoding="utf-8").splitlines()[before:]
-    return [json.loads(line) for line in lines if line.strip()]
+    return journal.read()[before:]
 
 
 def main() -> None:
-    from openai import OpenAI
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", default=MODEL)
-    parser.add_argument("--base-url", default=OLLAMA)
-    parser.add_argument("--api-key", default="ollama")
+    parser.add_argument("--base-url", default=None, help="по умолчанию KINO_BASE_URL или Ollama")
+    parser.add_argument("--api-key", default=None, help="по умолчанию OPENAI_API_KEY")
     parser.add_argument("--runs", type=int, default=1)
     args = parser.parse_args()
 
-    films = load_catalog(CATALOG)
+    films = load_catalog()
     titles = {str(f["id"]): f["title"] for f in films}
     if not QUERIES.exists():
         print("Нет файла queries.json в корне проекта: создайте его, формат в README.")
         return
     items = json.loads(QUERIES.read_text(encoding="utf-8"))
-    client = OpenAI(base_url=args.base_url, api_key=args.api_key,
-                    max_retries=0, timeout=300)
+    client = make_client(args.base_url, args.api_key)
 
     print(f"Модель: {args.model}, запросов {len(items)} × {args.runs}")
     outcomes, aliens, violations, results, rates = Counter(), 0, 0, [], []

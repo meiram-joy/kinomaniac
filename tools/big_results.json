@@ -1,0 +1,44 @@
+{
+  "recall": {
+    "recall": 0.957,
+    "hits": 22,
+    "queries": 23,
+    "ms_per_query": 3
+  },
+  "path": {
+    "model": "qwen3.5:4b",
+    "candidates": {
+      "pass_rate": 0.7,
+      "passed": 7,
+      "queries": 10,
+      "tokens_in": 4056,
+      "tokens_out": 82,
+      "seconds": 2.1,
+      "usd_gpt-6-luna": 0.000447
+    },
+    "candidates_filters": {
+      "pass_rate": 0.7,
+      "passed": 7,
+      "queries": 10,
+      "tokens_in": 2858,
+      "tokens_out": 129,
+      "seconds": 2.1,
+      "usd_gpt-6-luna": 0.00035
+    },
+    "whole_catalog": {
+      "pass_rate": 0.5,
+      "passed": 5,
+      "queries": 10,
+      "tokens_in": 184390,
+      "tokens_out": 127,
+      "seconds": 10.4,
+      "usd_gpt-6-luna": 0.018502
+    }
+  },
+  "size": {
+    "films": 1094,
+    "prompt_chars": 492414,
+    "chars_per_token": 2.79,
+    "tokens_estimate": 176655
+  }
+}

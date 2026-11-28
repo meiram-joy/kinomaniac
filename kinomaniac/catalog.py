@@ -1,8 +1,6 @@
-"""Каталог: модель Фильма, словарь каталога и проверка файла каталога."""
+"""Каталог: модель Фильма, словарь каталога и проверка каталога."""
 
-import json
 from collections import Counter
-from pathlib import Path
 
 from pydantic import BaseModel, Field
 
@@ -42,12 +40,3 @@ def check_catalog(films: list[dict]) -> list[str]:
     if repeats:
         problems.append(f"повтор id: {repeats}")
     return problems
-
-
-def load_catalog(path: str | Path) -> list[dict]:
-    """Прочитать и проверить каталог. При ошибке — ValueError с перечнем проблем."""
-    films = json.loads(Path(path).read_text(encoding="utf-8"))
-    problems = check_catalog(films)
-    if problems:
-        raise ValueError("каталог не прошёл проверку:\n" + "\n".join(problems))
-    return films

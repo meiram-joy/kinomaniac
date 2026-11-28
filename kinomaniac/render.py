@@ -9,6 +9,10 @@ MESSAGES = {
 }
 
 
+def conditions(described: str, count: int) -> None:
+    print(f"Условия запроса: {described}, подходит фильмов: {count}")
+
+
 def films(shown: list[tuple[dict, str]]) -> None:
     for n, (film, why) in enumerate(shown, 1):
         print(f"{n}. {film['title']} ({film['year']}, {film['minutes']} мин)")

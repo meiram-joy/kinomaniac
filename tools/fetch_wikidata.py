@@ -156,9 +156,35 @@ def catalog_genres(raw: list[str], category: str) -> list[str]:
     return sorted(words, key=GENRE_ORDER.index)[:MAX_GENRES]
 
 
+LANGUAGES = {
+    "американский вариант английского языка": "английский",
+    "австралийский английский": "английский",
+    "бразильский вариант португальского языка": "португальский",
+    "севернокитайский": "китайский", "путунхуа": "китайский",
+    "кантонский диалект": "кантонский", "юэ": "кантонский",
+    "новогреческий": "греческий", "арамейские языки": "арамейский",
+    "майяские языки": "майя", "Арикара": "арикара",
+}
+COUNTRIES = {
+    "Республика Корея": "Южная Корея", "Британский Гонконг": "Гонконг",
+    "Германский рейх": "Германия", "Веймарская республика": "Германия",
+    "Королевство Италия": "Италия", "Китайская Республика": "Китай",
+}
+
+
+def unique(items: list[str]) -> list[str]:
+    return list(dict.fromkeys(items))
+
+
 def catalog_languages(raw: list[str]) -> list[str]:
-    """'русский язык' -> 'русский'."""
-    return [x.removesuffix(" язык") for x in raw]
+    """Языки Wikidata -> слова каталога: 'русский язык' -> 'русский', 'путунхуа' -> 'китайский'."""
+    names = [x.removesuffix(" язык") for x in raw]
+    return unique([LANGUAGES.get(x, x) for x in names])
+
+
+def catalog_countries(raw: list[str]) -> list[str]:
+    """Страны Wikidata -> слова каталога: 'Республика Корея' -> 'Южная Корея'."""
+    return unique([COUNTRIES.get(x, x) for x in raw])
 
 
 def wiki_extract(article_url: str) -> str:
@@ -200,7 +226,7 @@ def build() -> None:
             "minutes": row["minutes"],
             "genres": GENRE_OVERRIDES.get(
                 row["qid"], catalog_genres(row["wikidata_genres"], row["category"])),
-            "countries": row["countries"],
+            "countries": catalog_countries(row["countries"]),
             "languages": catalog_languages(row["wikidata_languages"]),
             "description": "",
 
@@ -228,6 +254,9 @@ def finalize() -> None:
         return
     films = [{key: f[key] for key in FIELDS} | {"description": descriptions[f["qid"]]}
              for f in draft]
+    for film in films:
+        film["languages"] = catalog_languages(film["languages"])
+        film["countries"] = catalog_countries(film["countries"])
     CATALOG.write_text(json.dumps(films, ensure_ascii=False, indent=2) + "\n",
                        encoding="utf-8")
     print(f"{CATALOG}: {len(films)} фильмов")

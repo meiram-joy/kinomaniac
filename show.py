@@ -4,16 +4,12 @@
     uv run show.py all    все вызовы
 """
 
-import json
 import sys
 from collections import Counter
-from pathlib import Path
 
-from kinomaniac.journal import PRICE
+from kinomaniac import journal
 
-JOURNAL = Path("calls.jsonl")
 LAST = 10
-REFERENCE = "gpt-6-luna"
 
 
 def tokens(row, key):
@@ -45,21 +41,21 @@ def summary(rows):
         avg_in = sum(tokens(r, "prompt_tokens") for r in mine) / count
         avg_out = sum(tokens(r, "completion_tokens") for r in mine) / count
         avg_sec = sum(r.get("seconds", 0) for r in mine) / count
-        usd = sum(r.get("usd", 0) for r in mine)
+        spent = sum(r.get("usd", 0) for r in mine)
         print(f"\n{model}: {count} запросов, на запрос (все шаги) вход {avg_in:.0f} ток., "
-              f"выход {avg_out:.0f} ток., {avg_sec:.1f} с, всего ${usd:.4f}")
-        price_in, price_out = PRICE.get(model, PRICE[REFERENCE])
-        one = (avg_in * price_in + avg_out * price_out) / 1_000_000
-        label = model if model in PRICE else f"{REFERENCE} (для сравнения; {model} бесплатна)"
+              f"выход {avg_out:.0f} ток., {avg_sec:.1f} с, всего ${spent:.4f}")
+        priced = model if model in journal.PRICE else journal.REFERENCE
+        one = journal.usd(priced, avg_in, avg_out)
+        label = (model if model in journal.PRICE
+                 else f"{journal.REFERENCE} (для сравнения; {model} бесплатна)")
         print(f"  один запрос по цене {label}: ${one:.6f}, 10 000 запросов: ${one * 10_000:.2f}")
 
 
 def main():
-    if not JOURNAL.exists():
+    rows = journal.read()
+    if not rows:
         print("Журнал пуст: файла calls.jsonl ещё нет")
         return
-    rows = [json.loads(line) for line in JOURNAL.read_text(encoding="utf-8").splitlines()
-            if line.strip()]
     table(rows if "all" in sys.argv[1:] else rows[-LAST:])
     summary(rows)
 

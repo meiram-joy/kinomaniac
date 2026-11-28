@@ -1,9 +1,13 @@
 """Фильтры запроса: модель разбирает условия, код по ним отбирает и проверяет фильмы."""
 
 import json
+from dataclasses import replace
 from typing import Literal, Optional
 
 from pydantic import BaseModel, create_model
+
+from kinomaniac.prompt import clean_query
+from kinomaniac.verify import Verdict
 
 FIELDS = ("max_minutes", "year_from", "year_to", "languages", "exclude_genres", "must_genres")
 
@@ -52,6 +56,22 @@ def apply(films: list[dict], flt) -> list[dict]:
     return [f for f in films if not violations(f, flt)]
 
 
+def recheck(verdict: Verdict, flt) -> tuple[Verdict, dict[str, list[str]]]:
+    """Ещё раз сверить выбранные фильмы с условиями: нарушителей убрать.
+
+    Возвращает новый вердикт и {id: нарушения}. Если не осталось ни одного фильма — no_match.
+    """
+    broken = {str(film["id"]): problems for film, _ in verdict.shown
+              if (problems := violations(film, flt))}
+    if not broken:
+        return verdict, {}
+    shown = [(f, why) for f, why in verdict.shown if str(f["id"]) not in broken]
+    if shown:
+        return replace(verdict, shown=shown), broken
+    return replace(verdict, outcome="no_match", shown=[],
+                   note="все предложенные фильмы нарушают условия"), broken
+
+
 def active(flt) -> dict:
     """Только заданные условия, для журнала и печати."""
     return {k: v for k, v in flt.model_dump().items() if v not in (None, [])}
@@ -79,9 +99,8 @@ INSTRUCTIONS = """Разбери запрос о фильме на услови�
 def build_messages(query: str, films: list[dict]) -> list[dict]:
     genres, languages = vocabulary(films)
     system = INSTRUCTIONS.format(genres=", ".join(genres), languages=", ".join(languages))
-    clean = query.replace("<", "").replace(">", "").strip()
     return [{"role": "system", "content": system},
-            {"role": "user", "content": f"<запрос>{clean}</запрос>"}]
+            {"role": "user", "content": f"<запрос>{clean_query(query)}</запрос>"}]
 
 
 def describe(flt) -> str:

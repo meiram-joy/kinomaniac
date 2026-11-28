@@ -9,11 +9,10 @@ import sys
 import time
 from pathlib import Path
 
-from openai import OpenAI
 from pydantic import BaseModel
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from kino import CATALOG, MODEL, OLLAMA          # noqa: E402
+from kino import CATALOG, MODEL, make_client     # noqa: E402
 from kinomaniac import journal, llm              # noqa: E402
 
 RESULTS = Path(__file__).parent / "memory_results.json"
@@ -29,7 +28,7 @@ class Facts(BaseModel):
 def main() -> None:
     films = json.loads(Path(CATALOG).read_text(encoding="utf-8"))
     sample = random.Random(SEED).sample(films, COUNT)
-    client = OpenAI(base_url=OLLAMA, api_key="ollama", max_retries=0, timeout=300)
+    client = make_client()
     rows, wrong_year, wrong_minutes = [], 0, 0
     for film in sample:
         question = (f"Фильм «{film['title']}». В каком году он вышел и сколько минут "
